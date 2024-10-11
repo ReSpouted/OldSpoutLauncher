@@ -1,0 +1,35 @@
+plugins {
+    id 'java'
+}
+
+group = 'org.respouted'
+version = '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+    maven { url 'https://jitpack.io' }
+}
+
+dependencies {
+    testImplementation platform('org.junit:junit-bom:5.10.0')
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    implementation 'com.github.ReSpouted:RetroMCP-Legacy:main-SNAPSHOT'
+    implementation "org.json:json:${project.json_version}"
+    implementation "org.eclipse.jgit:org.eclipse.jgit:5.13.3.202401111512-r"
+}
+
+test {
+    useJUnitPlatform()
+}
+
+jar {
+    manifest {
+        attributes 'Main-Class': 'org.respouted.Main'
+    }
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
+    exclude 'META-INF/*.RSA', 'META-INF/*.SF','META-INF/*.DSA'
+    duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    dependsOn ('dependencies')
+}
