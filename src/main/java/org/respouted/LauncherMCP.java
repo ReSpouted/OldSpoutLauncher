@@ -60,12 +60,10 @@ public class LauncherMCP extends MCP {
 
     @Override
     public void setProgress(int barIndex, String progressMessage) {
-        log("bar " + barIndex + "updated to " + progressMessage);
     }
 
     @Override
     public void setProgress(int barIndex, int progress) {
-        log("bar " + barIndex + "updated to " + progress + "%");
     }
 
     @Override
@@ -75,24 +73,20 @@ public class LauncherMCP extends MCP {
 
     @Override
     public boolean yesNoInput(String title, String msg) {
-        log("hello btw u got asced for boolean input: " + msg);
         return false;
     }
 
     @Override
     public String inputString(String title, String msg) {
-        log("hi btw u got asked string input: " + msg);
         return "";
     }
 
     @Override
     public void showMessage(String title, String msg, int type) {
-        log("hi btw i was told to let u know that " + msg);
     }
 
     @Override
     public void showMessage(String title, String msg, Throwable e) {
-        log("hi btw i was told to let u know that " + msg);
     }
 
     @Override
