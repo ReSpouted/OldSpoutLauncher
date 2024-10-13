@@ -17,6 +17,8 @@ import java.net.URI;
 import java.net.URISyntaxException;
 import java.nio.charset.StandardCharsets;
 import java.text.ParseException;
+import java.util.Arrays;
+import java.util.stream.Collectors;
 
 // https://wiki.vg/Microsoft_Authentication_Scheme
 // https://learn.microsoft.com/en-us/entra/identity-platform/v2-oauth2-auth-code-flow
@@ -32,7 +34,6 @@ public class Authorizer {
                 Storage.INSTANCE.setMicrosoftOauthToken(oauthToken);
             }
             MinecraftToken minecraftToken = getMinecraftToken(getXboxXstsToken(getXboxXblToken(oauthToken)));
-            System.out.println("Got the minecraft token: " + minecraftToken);
             Storage.INSTANCE.setMinecraftToken(minecraftToken);
             Profile profile = getProfile(minecraftToken);
             Storage.INSTANCE.setProfile(profile);
@@ -59,7 +60,6 @@ public class Authorizer {
 
             int responseCode = connection.getResponseCode();
             JSONObject response = new JSONObject(Util.getResponseBody(responseCode, connection));
-            System.out.println("Got profile response " + response.toString(4));
             if(response.has("id")) {
                 return new Profile(response.getString("id"), response.getString("name"));
             }
@@ -168,9 +168,9 @@ public class Authorizer {
             connection.setRequestProperty("Content-Type", "application/x-www-form-urlencoded");
             connection.getOutputStream().write(body.getBytes(StandardCharsets.UTF_8));
             connection.getOutputStream().close();
+
             int responseCode = connection.getResponseCode();
             String responseMessage = Util.getResponseBody(responseCode, connection);
-            System.out.println(responseMessage);
             JSONObject response = new JSONObject(responseMessage);
             return new MicrosoftOauthToken(response.getString("access_token"),
                     response.getInt("expires_in"),
@@ -188,25 +188,22 @@ public class Authorizer {
         try {
             final String[] code = {null};
             HttpServer httpServer = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
-            httpServer.createContext("/", new HttpHandler() {
-                @Override
-                public void handle(HttpExchange exchange) throws IOException {
-                    String[] query = exchange.getRequestURI().getQuery().split("=");
-                    if(query.length != 2) {
-                        //TODO proper query handling, this is good enough for now
-                        throw new RuntimeException();
-                    }
+            httpServer.createContext("/", exchange -> {
+                for(String[] query : Arrays.stream(exchange.getRequestURI().getQuery().split("&")).map(q -> q.split("=")).collect(Collectors.toList())) {
+                    if(query.length != 2) continue;
+                    if(!"code".equals(query[0])) continue;
                     code[0] = query[1];
-                    synchronized(code) {
-                        code.notifyAll();
-                    }
-
-                    byte[] response = "Logged in successfully. You may now close this window.".getBytes(StandardCharsets.UTF_8);
-                    exchange.sendResponseHeaders(200, response.length);
-                    exchange.getResponseBody().write(response);
-                    exchange.getResponseBody().close();
-
+                    break;
                 }
+                synchronized(code) {
+                    code.notifyAll();
+                }
+
+                byte[] response = "Logged in successfully. You may now close this window.".getBytes(StandardCharsets.UTF_8);
+                exchange.sendResponseHeaders(200, response.length);
+                exchange.getResponseBody().write(response);
+                exchange.getResponseBody().close();
+
             });
             httpServer.start();
 
@@ -221,7 +218,13 @@ public class Authorizer {
                      + "prompt=select_account");
 
             Main.window.loggingInDialog.updateLink(uri.toString());
-            Desktop.getDesktop().browse(uri);
+            try {
+                // I don't know what caused this https://github.com/ATLauncher/ATLauncher/issues/713, but I'd rather
+                // play it safe and make sure it's possible to log in even if that happens. This is also why the
+                // url is given to the user to copy-paste as a fallback.
+                Desktop.getDesktop().browse(uri);
+            } catch(IOException | UnsupportedOperationException ignored) {
+            }
 
             synchronized(code) {
                 try {

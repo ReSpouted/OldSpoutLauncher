@@ -19,9 +19,4 @@ public class Profile {
         this.uuid = uuid;
         this.username = username;
     }
-
-    @Override
-    public String toString() {
-        return exists ? "Username: " + username + ", uuid: " + uuid : "Non-existent player";
-    }
 }

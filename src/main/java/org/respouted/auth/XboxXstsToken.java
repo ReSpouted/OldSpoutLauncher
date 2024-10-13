@@ -1,13 +1,10 @@
 package org.respouted.auth;
 
-import java.text.DateFormat;
 import java.text.ParseException;
-import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.util.Date;
 
 public class XboxXstsToken {
-    public static final DateFormat DATE_FORMAT = new SimpleDateFormat("yyy-MM-dd'T'HH:mm:ss.SSSZ");
     public final Date issued;
     public final Date expiry;
     public final String token;

@@ -88,13 +88,6 @@ public class LauncherWindow extends JFrame {
             }
             MinecraftToken token = Storage.INSTANCE.getMinecraftToken();
             Profile profile = Storage.INSTANCE.getProfile();
-            /*
-                    "--username " + profile.username
-                    + " --uuid " + profile.uuid
-                    + " --userType msa"
-                    + " --accessToken " + token.accessToken
-             */
-            // --username ${auth_player_name} --session ${auth_session} (--version ${version_name}) --gameDir ${game_directory} --assetsDir ${game_assets}
             String separator = FileSystems.getDefault().getSeparator();
             String classPath = MCPPaths.get(mcp, MCPPaths.BIN, Task.Side.CLIENT).toAbsolutePath() + ":" + MCPPaths.get(mcp, MCPPaths.REMAPPED, Task.Side.CLIENT).toAbsolutePath() + ":" + mcp.getLibraries().stream().map(path -> path.toAbsolutePath().toString()).collect(Collectors.joining(":"));
             String jvm = System.getProperty("java.home") + separator + "bin" + separator + "java";
@@ -108,8 +101,7 @@ public class LauncherWindow extends JFrame {
                     "--gameDir", gameDir.toString(),
                     "--assetsDir", gameDir.resolve("assets").toString()};
             ProcessBuilder builder = new ProcessBuilder(command);
-            System.out.println("Running process: " + String.join(" ", command));
-            Process process = null;
+            Process process;
             try {
                 process = builder.start();
                 process.waitFor();

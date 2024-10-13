@@ -45,14 +45,4 @@ public class MicrosoftOauthToken {
     public boolean isExpired() {
         return expiry.before(new Date());
     }
-
-    @Override
-    public String toString() {
-        return "Access token: " + accessToken
-                + "\nExpiry date: " + expiry
-                + "\nScope: " + scope
-                + "\nRefresh token: " + refreshToken
-                + "\nClient ID: " + clientId
-                + "\nRedirect URI: " + redirectUri;
-    }
 }
