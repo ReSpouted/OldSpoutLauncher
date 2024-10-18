@@ -120,8 +120,7 @@ public class LauncherWindow extends JFrame {
             loggingInDialog = new LoggingInDialog();
             loggingInDialog.show();
             loginThread = new Thread(() -> {
-                //TODO NOT OUR CLIENT ID!!! IMPORTANT CHANGE THIS SO IT'S OUR CLIENT ID!!!!
-                String clientId = "d18bb4d8-a27f-4451-a87f-fe6de4436813";
+                String clientId = "856b1745-0019-4218-93d7-c5291c7675e5";
                 MicrosoftOauthToken token = Authorizer.getMicrosoftOauthToken(Authorizer.doMicrosoftInteractiveAuthorization(clientId));
                 loggingInDialog.close();
                 Storage.INSTANCE.setMicrosoftOauthToken(token);
