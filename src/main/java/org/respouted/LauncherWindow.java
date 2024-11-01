@@ -11,22 +11,27 @@ import org.respouted.auth.MicrosoftOauthToken;
 import org.respouted.auth.MinecraftToken;
 import org.respouted.auth.Profile;
 
+import javax.imageio.ImageIO;
 import javax.swing.BoxLayout;
+import javax.swing.ImageIcon;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
+import javax.swing.SpringLayout;
 import javax.swing.SwingUtilities;
 import javax.swing.WindowConstants;
+import java.awt.Container;
 import java.awt.Dimension;
+import java.awt.Font;
+import java.awt.Image;
+import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.List;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
@@ -42,17 +47,18 @@ public class LauncherWindow extends JFrame {
     public JLabel loggedInLabel;
     public LoggingInDialog loggingInDialog = new LoggingInDialog();
 
-    //TODO decent layout
     public LauncherWindow(LauncherMCP mcp) {
         super("OldSpout Launcher");
         this.mcp = mcp;
-        this.setLayout(new BoxLayout(this.getContentPane(), BoxLayout.Y_AXIS));
+        SpringLayout layout = new SpringLayout();
+        this.setLayout(layout);
+        Container contentPane = this.getContentPane();
         this.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
-        this.setSize(1000, 1000);
+        this.setSize(500, 350);
 
         launchButton = new JButton("Launch");
         launchButton.setEnabled(false);
-        launchButton.setSize(new Dimension(100, 30));
+        launchButton.setFont(new Font("Arial", Font.BOLD, 20));
         launchButton.addActionListener(e -> mcpExecutor.execute(() -> {
             launchButton.setEnabled(false);
             mcp.log("Launching the game...");
@@ -104,17 +110,21 @@ public class LauncherWindow extends JFrame {
             Process process;
             try {
                 process = builder.start();
+                this.setVisible(false);
                 process.waitFor();
             } catch(InterruptedException | IOException ex) {
                 throw new RuntimeException(ex);
             }
+            this.setVisible(true);
             launchButton.setEnabled(true);
         }));
         this.add(launchButton);
 
+        JPanel accountPanel = new JPanel();
+        accountPanel.setLayout(new BoxLayout(accountPanel, BoxLayout.X_AXIS));
+
         loginButton = new JButton("Log in");
         loginButton.setEnabled(false);
-        loginButton.setSize(new Dimension(100, 30));
         loginButton.addActionListener(e -> {
             loginButton.setEnabled(false);
             loggingInDialog = new LoggingInDialog();
@@ -129,21 +139,42 @@ public class LauncherWindow extends JFrame {
             });
             loginThread.start();
         });
-        this.add(loginButton);
+        accountPanel.add(loginButton);
 
         logoutButton = new JButton("Log out");
         logoutButton.setEnabled(false);
-        logoutButton.setSize(new Dimension(100, 30));
         logoutButton.addActionListener(e -> {
             Storage.INSTANCE.setMicrosoftOauthToken(null);
             Storage.INSTANCE.setMinecraftToken(null);
             Storage.INSTANCE.setProfile(null);
             refreshElementStatesLater();
         });
-        this.add(logoutButton);
+        accountPanel.add(logoutButton);
+
+        this.add(accountPanel);
 
         loggedInLabel = new JLabel("...");
         this.add(loggedInLabel);
+
+        try {
+            BufferedImage originalImage = ImageIO.read(LauncherWindow.class.getResourceAsStream("/spoutcraft.png"));
+            Image scaledImage = originalImage.getScaledInstance((int) (originalImage.getWidth() * 1.5), (int) (originalImage.getHeight() * 1.5), Image.SCALE_SMOOTH);
+            JLabel logoLabel = new JLabel(new ImageIcon(scaledImage));
+            this.add(logoLabel);
+            layout.putConstraint(SpringLayout.NORTH, logoLabel, 25, SpringLayout.NORTH, contentPane);
+            layout.putConstraint(SpringLayout.HORIZONTAL_CENTER, logoLabel, 0, SpringLayout.HORIZONTAL_CENTER, contentPane);
+        } catch(IOException | IllegalArgumentException e) {
+            e.printStackTrace();
+        }
+
+        layout.putConstraint(SpringLayout.SOUTH, loggedInLabel, -25, SpringLayout.SOUTH, contentPane);
+        layout.putConstraint(SpringLayout.HORIZONTAL_CENTER, loggedInLabel, 0, SpringLayout.HORIZONTAL_CENTER, contentPane);
+
+        layout.putConstraint(SpringLayout.SOUTH, accountPanel, -10, SpringLayout.NORTH, loggedInLabel);
+        layout.putConstraint(SpringLayout.HORIZONTAL_CENTER, accountPanel, 0, SpringLayout.HORIZONTAL_CENTER, contentPane);
+
+        layout.putConstraint(SpringLayout.SOUTH, launchButton, -40, SpringLayout.NORTH, accountPanel);
+        layout.putConstraint(SpringLayout.HORIZONTAL_CENTER, launchButton, 0, SpringLayout.HORIZONTAL_CENTER, contentPane);
 
         this.setVisible(true);
     }
