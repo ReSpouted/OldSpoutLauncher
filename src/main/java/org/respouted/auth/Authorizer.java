@@ -30,7 +30,7 @@ public class Authorizer {
         MicrosoftOauthToken oauthToken = Storage.INSTANCE.getMicrosoftOauthToken();
         if(oauthToken != null) {
             if(oauthToken.isExpired()) {
-                oauthToken = getMicrosoftOauthToken(new OauthResponse(oauthToken.refreshToken, oauthToken.scope, oauthToken.redirectUri, oauthToken.clientId));
+                oauthToken = getMicrosoftOauthToken(new OauthResponse(oauthToken.refreshToken, oauthToken.scope, oauthToken.redirectUri, oauthToken.clientId), true);
                 Storage.INSTANCE.setMicrosoftOauthToken(oauthToken);
             }
             MinecraftToken minecraftToken = getMinecraftToken(getXboxXstsToken(getXboxXblToken(oauthToken)));
@@ -153,15 +153,15 @@ public class Authorizer {
         }
     }
 
-    public static MicrosoftOauthToken getMicrosoftOauthToken(OauthResponse oauthResponse) {
+    public static MicrosoftOauthToken getMicrosoftOauthToken(OauthResponse oauthResponse, boolean isRefresh) {
         try {
             URI uri = new URI("https://login.microsoftonline.com/consumers/oauth2/v2.0/token");
 
             String body = "client_id=" + oauthResponse.clientId + "&"
                     + "scope=" + oauthResponse.scope + "&"
-                    + "code=" + oauthResponse.code + "&"
+                    + (isRefresh ? "refresh_token=" : "code=") + oauthResponse.code + "&"
                     + "redirect_uri=" + oauthResponse.redirectURI + "&"
-                    + "grant_type=authorization_code";
+                    + "grant_type=" + (isRefresh ? "refresh_token" : "authorization_code");
             HttpsURLConnection connection =  (HttpsURLConnection) uri.toURL().openConnection();
             connection.setDoOutput(true);
             connection.setRequestMethod("POST");
