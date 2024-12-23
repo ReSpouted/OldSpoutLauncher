@@ -31,18 +31,18 @@ if ! ls jdk/bin/java > /dev/null 2> /dev/null; then
 	echo "Downloading JDK..."
 
 	if ! tar --version > /dev/null 2> /dev/null; then
-		echo "tar is missing, aborting"
+		echo "tar is missing, aborting" >& 2
 		exit 1
 	fi
 
 	if wget --version > /dev/null 2> /dev/null; then
 		if ! wget -O jdk.tar.gz -nv --show-progress "$url"; then
-			echo "Failed to download JDK with wget" >&2
+			echo "Failed to download JDK with wget" >& 2
 			exit 1
 		fi
 	elif curl --version > /dev/null 2> /dev/null; then
 		if ! curl "$url" -L > jdk.tar.gz; then
-			echo "Failed to download JDK with cURL"
+			echo "Failed to download JDK with cURL" >& 2
 			exit 1
 		fi
 	else
