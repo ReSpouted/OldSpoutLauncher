@@ -10,6 +10,7 @@ import org.respouted.auth.Authorizer;
 import org.respouted.auth.MicrosoftOauthToken;
 import org.respouted.auth.MinecraftToken;
 import org.respouted.auth.Profile;
+import org.respouted.util.OS;
 
 import javax.imageio.ImageIO;
 import javax.swing.BoxLayout;
@@ -95,7 +96,7 @@ public class LauncherWindow extends JFrame {
             MinecraftToken token = Storage.INSTANCE.getMinecraftToken();
             Profile profile = Storage.INSTANCE.getProfile();
             String separator = FileSystems.getDefault().getSeparator();
-            String classPath = MCPPaths.get(mcp, MCPPaths.BIN, Task.Side.CLIENT).toAbsolutePath() + ":" + MCPPaths.get(mcp, MCPPaths.REMAPPED, Task.Side.CLIENT).toAbsolutePath() + ":" + mcp.getLibraries().stream().map(path -> path.toAbsolutePath().toString()).collect(Collectors.joining(":"));
+            String classPath = MCPPaths.get(mcp, MCPPaths.BIN, Task.Side.CLIENT).toAbsolutePath() + OS.getClasspathSeparator() + MCPPaths.get(mcp, MCPPaths.REMAPPED, Task.Side.CLIENT).toAbsolutePath() + OS.getClasspathSeparator() + mcp.getLibraries().stream().map(path -> path.toAbsolutePath().toString()).collect(Collectors.joining(OS.getClasspathSeparator()));
             String jvm = System.getProperty("java.home") + separator + "bin" + separator + "java";
             Path gameDir = MCPPaths.get(mcp, MCPPaths.GAMEDIR, Task.Side.CLIENT).toAbsolutePath();
             String[] command = new String[]{jvm,
@@ -110,6 +111,8 @@ public class LauncherWindow extends JFrame {
             Process process;
             try {
                 process = builder.start();
+				process.getErrorStream().close();
+				process.getOutputStream().close();
                 this.setVisible(false);
                 process.waitFor();
             } catch(InterruptedException | IOException ex) {
