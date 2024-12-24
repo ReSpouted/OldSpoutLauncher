@@ -13,7 +13,7 @@ repositories {
 dependencies {
     testImplementation platform('org.junit:junit-bom:5.10.0')
     testImplementation 'org.junit.jupiter:junit-jupiter'
-    implementation 'com.github.ReSpouted:RetroMCP-Legacy:main-SNAPSHOT'
+    implementation 'com.github.ReSpouted:RetroMCP-Legacy:2534309ade'
     implementation "org.json:json:${project.json_version}"
     implementation "org.eclipse.jgit:org.eclipse.jgit:5.13.3.202401111512-r"
 }
