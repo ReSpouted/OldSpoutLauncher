@@ -33,6 +33,7 @@ import java.io.IOException;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Arrays;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 import java.util.stream.Collectors;
@@ -111,8 +112,12 @@ public class LauncherWindow extends JFrame {
             Process process;
             try {
                 process = builder.start();
-				process.getErrorStream().close();
-				process.getOutputStream().close();
+                // Windows hangs if the streams are left open but not read.
+                // Unix (or just linux? idk) kills (i think?) the process if the streams get closed.
+                if(OS.CURRENT_OS == OS.WINDOWS) {
+                    process.getErrorStream().close();
+                    process.getOutputStream().close();
+                }
                 this.setVisible(false);
                 process.waitFor();
             } catch(InterruptedException | IOException ex) {

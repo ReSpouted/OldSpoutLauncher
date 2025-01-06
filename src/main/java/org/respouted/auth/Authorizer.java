@@ -7,7 +7,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.respouted.Main;
 import org.respouted.Storage;
-import org.respouted.Util;
+import org.respouted.util.Util;
 
 import javax.net.ssl.HttpsURLConnection;
 import java.awt.Desktop;

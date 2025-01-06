@@ -1,4 +1,4 @@
-package org.respouted;
+package org.respouted.util;
 
 import javax.net.ssl.HttpsURLConnection;
 import java.io.DataInputStream;

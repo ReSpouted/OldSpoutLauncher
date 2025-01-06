@@ -4,6 +4,7 @@ import org.json.JSONObject;
 import org.respouted.auth.MicrosoftOauthToken;
 import org.respouted.auth.MinecraftToken;
 import org.respouted.auth.Profile;
+import org.respouted.util.Util;
 
 import java.io.IOException;
 import java.io.InputStream;
