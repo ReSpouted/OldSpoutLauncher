@@ -36,11 +36,21 @@ if ! ls jdk/bin/java > /dev/null 2> /dev/null; then
 	fi
 
 	if wget --version > /dev/null 2> /dev/null; then
-		if ! wget -O jdk.tar.gz -nv --show-progress "$url"; then
-			echo "Failed to download JDK with wget" >& 2
-			exit 1
-		fi
+	  if wget --version | grep -q 'Wget2'; then
+	    echo "Using Wget2"
+	    if ! wget -O jdk.tar.gz -nv "$url"; then
+        echo "Failed to download JDK with wget2" >& 2
+        exit 1
+      fi
+    else
+	    echo "Using Wget"
+      if ! wget -O jdk.tar.gz -nv --show-progress "$url"; then
+        echo "Failed to download JDK with wget" >& 2
+        exit 1
+      fi
+    fi
 	elif curl --version > /dev/null 2> /dev/null; then
+	  echo "Using curl"
 		if ! curl "$url" -L > jdk.tar.gz; then
 			echo "Failed to download JDK with cURL" >& 2
 			exit 1
