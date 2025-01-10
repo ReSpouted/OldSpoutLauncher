@@ -30,6 +30,7 @@ import java.awt.Font;
 import java.awt.Image;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
+import java.io.File;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -96,7 +97,7 @@ public class LauncherWindow extends JFrame {
             MinecraftToken token = Storage.INSTANCE.getMinecraftToken();
             Profile profile = Storage.INSTANCE.getProfile();
             String separator = FileSystems.getDefault().getSeparator();
-            String classPath = MCPPaths.get(mcp, MCPPaths.BIN, Task.Side.CLIENT).toAbsolutePath() + OS.getClasspathSeparator() + MCPPaths.get(mcp, MCPPaths.REMAPPED, Task.Side.CLIENT).toAbsolutePath() + OS.getClasspathSeparator() + mcp.getLibraries().stream().map(path -> path.toAbsolutePath().toString()).collect(Collectors.joining(OS.getClasspathSeparator()));
+            String classPath = MCPPaths.get(mcp, MCPPaths.BIN, Task.Side.CLIENT).toAbsolutePath() + File.pathSeparator + MCPPaths.get(mcp, MCPPaths.REMAPPED, Task.Side.CLIENT).toAbsolutePath() + File.pathSeparator + mcp.getLibraries().stream().map(path -> path.toAbsolutePath().toString()).collect(Collectors.joining(File.pathSeparator));
             String jvm = System.getProperty("java.home") + separator + "bin" + separator + "java";
             Path gameDir = MCPPaths.get(mcp, MCPPaths.GAMEDIR, Task.Side.CLIENT).toAbsolutePath();
             String[] command = new String[]{jvm,

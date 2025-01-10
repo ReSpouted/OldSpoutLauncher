@@ -5,10 +5,6 @@ public enum OS {
 	WINDOWS;
 	
 	public static final OS CURRENT_OS;
-	
-	public static String getClasspathSeparator() {
-		return CURRENT_OS == WINDOWS ? ";" : ":";
-	}
 
 	static {
 		String name = System.getProperty("os.name");
