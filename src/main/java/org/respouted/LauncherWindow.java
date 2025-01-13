@@ -2,6 +2,7 @@ package org.respouted;
 
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.GitAPIException;
+import org.eclipse.jgit.lib.EmptyProgressMonitor;
 import org.mcphackers.mcp.MCPPaths;
 import org.mcphackers.mcp.tasks.Task;
 import org.mcphackers.mcp.tasks.mode.TaskMode;
@@ -10,6 +11,7 @@ import org.respouted.auth.Authorizer;
 import org.respouted.auth.MicrosoftOauthToken;
 import org.respouted.auth.MinecraftToken;
 import org.respouted.auth.Profile;
+import org.respouted.ui.ProgressButton;
 import org.respouted.util.OS;
 import org.respouted.util.Util;
 
@@ -36,6 +38,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 public class LauncherWindow extends JFrame {
@@ -43,7 +46,7 @@ public class LauncherWindow extends JFrame {
     private Executor mcpExecutor = Executors.newSingleThreadExecutor();
     public Thread loginThread = null;
     public LauncherMCP mcp;
-    public JButton launchButton;
+    public ProgressButton launchButton;
     public JButton loginButton;
     public JButton logoutButton;
     public JLabel loggedInLabel;
@@ -58,25 +61,80 @@ public class LauncherWindow extends JFrame {
         this.setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         this.setSize(500, 350);
 
-        launchButton = new JButton("Launch");
+        launchButton = new ProgressButton("Launch");
         launchButton.setEnabled(false);
         launchButton.setFont(new Font("Arial", Font.BOLD, 20));
         launchButton.addActionListener(e -> mcpExecutor.execute(() -> {
             launchButton.setEnabled(false);
+            launchButton.setText("Launching...");
             mcp.log("Launching the game...");
+            int maxStages = 4;
+            final AtomicInteger stage = new AtomicInteger(-1);
+            final AtomicInteger decompileAttempt = new AtomicInteger(0);
+            final AtomicInteger lastDecompileProgress = new AtomicInteger(-1);
+            LauncherMCP.ProgressListener listener = progress -> {
+                if(stage.get() == -1) return;
+                // decompile
+                if(stage.get() == 1) {
+                    if(progress < lastDecompileProgress.get()) decompileAttempt.incrementAndGet();
+                    lastDecompileProgress.set(progress);
+
+                    double progressFloating = progress / 100.0;
+                    progressFloating *= decompileProgressMultiplier(decompileAttempt.get() + 1) - decompileProgressMultiplier(decompileAttempt.get());
+                    progressFloating += decompileProgressMultiplier(decompileAttempt.get());
+
+                    progress = (int) (progressFloating * 100);
+                }
+                double multiplier = 1.0 / maxStages;
+                double percentage = multiplier * stage.get() + multiplier * (progress / 100.0);
+                launchButton.setProgress(percentage);
+            };
+            mcp.registerProgressListener(listener);
             if(mcp.getCurrentVersion() == null) {
+                System.out.println("Setting up");
+                stage.set(0);
                 mcp.options.setParameter(TaskParameter.SETUP_VERSION, "1.6.4");
                 mcp.performTask(TaskMode.SETUP, Task.Side.CLIENT);
             }
             if(!Files.exists(MCPPaths.get(mcp, MCPPaths.PROJECT, Task.Side.CLIENT)) || !Files.exists(MCPPaths.get(mcp, MCPPaths.SOURCE, Task.Side.CLIENT))) {
+                System.out.println("Decompiling");
+                stage.set(1);
                 mcp.performTask(TaskMode.DECOMPILE, Task.Side.CLIENT);
             }
             if(!Files.exists(mcp.getWorkingDir().resolve("grease"))) {
-                try {
-                    Git.cloneRepository()
-                            .setURI("https://github.com/respouted/grease")
-                            .setDirectory(mcp.getWorkingDir().resolve("grease").toFile())
-                            .call();
+                System.out.println("Downloading patches");
+                stage.set(2);
+                try (
+                        Git git = Git.cloneRepository()
+                                .setProgressMonitor(new EmptyProgressMonitor() {
+                                    // Don't really know why this is 7 cause when I do it through cli it's way fewer
+                                    // steps, but it doesn't actually know the amount of steps it'll do at the start, so
+                                    // I have to hardcode it in
+                                    final int totalTasks = 7;
+                                    int currentTotalWork = 0;
+                                    int currentProgress = 0;
+                                    int currentTask = -1;
+
+                                    @Override
+                                    public void beginTask(String title, int totalWork) {
+                                        currentTotalWork = totalWork;
+                                        currentProgress = 0;
+                                        currentTask++;
+                                    }
+
+                                    @Override
+                                    public void update(int completed) {
+                                        if(currentTask == -1) return;
+                                        currentProgress += completed;
+                                        double multiplier = 1.0 / totalTasks;
+                                        double percentage = (multiplier * currentTask + multiplier * ((double) currentProgress / currentTotalWork)) * 100;
+                                        mcp.setProgress(0, (int) percentage);
+                                    }
+                                })
+                                .setURI("https://github.com/respouted/grease")
+                                .setDirectory(mcp.getWorkingDir().resolve("grease").toFile())
+                                .call()
+                ) {
                     MCPPaths.get(mcp, MCPPaths.PATCH, Task.Side.CLIENT).getParent().toFile().mkdirs();
                     Files.move(mcp.getWorkingDir().resolve("grease").resolve("client.patch"), MCPPaths.get(mcp, MCPPaths.PATCH, Task.Side.CLIENT));
                 } catch(GitAPIException | IOException ex) {
@@ -84,6 +142,8 @@ public class LauncherWindow extends JFrame {
                 }
             }
             if(!Files.exists(MCPPaths.get(mcp, MCPPaths.SOURCE, Task.Side.CLIENT).resolve("org").resolve("spoutcraft"))) {
+                System.out.println("Applying patch");
+                // not a stage cause it's too fast and causes an instant jump in the progress bar
                 mcp.performTask(TaskMode.APPLY_PATCH, Task.Side.CLIENT);
                 try {
                     Files.move(mcp.getWorkingDir().resolve("grease").resolve("resources"), MCPPaths.get(mcp, MCPPaths.SOURCE, Task.Side.CLIENT).resolve("org").resolve("spoutcraft").resolve("resources"));
@@ -92,8 +152,12 @@ public class LauncherWindow extends JFrame {
                 }
             }
             if(!Files.exists(MCPPaths.get(mcp, MCPPaths.BIN, Task.Side.CLIENT))) {
+                System.out.println("Recompiling");
+                stage.set(3);
                 mcp.performTask(TaskMode.RECOMPILE, Task.Side.CLIENT);
             }
+            stage.set(-1);
+            mcp.removeProgressListener(listener);
             MinecraftToken token = Storage.INSTANCE.getMinecraftToken();
             Profile profile = Storage.INSTANCE.getProfile();
             String separator = FileSystems.getDefault().getSeparator();
@@ -124,6 +188,7 @@ public class LauncherWindow extends JFrame {
                 throw new RuntimeException(ex);
             }
             this.setVisible(true);
+            launchButton.setText("Launch");
             launchButton.setEnabled(true);
         }));
         this.add(launchButton);
@@ -252,5 +317,21 @@ public class LauncherWindow extends JFrame {
         public void updateLink(String newLink) {
             linkField.setText(newLink);
         }
+    }
+
+    /*
+    Taken from StackExchange https://math.stackexchange.com/a/354879
+    Then fine-tuned in Desmos so that the increase is clearly noticeable up to around 3 tries and reaches 100 at around
+    15
+
+    This is here so that users don't see a progress bar going back (looks like the program is broken), but also don't
+    just see a frozen progress bar while it's working. This makes it so that the first attempts to decompile properly
+    move the progress bar the most (1 attempt at 42%, 2 at 59%, 3 at 68%) while once a lot of attempts have been done
+    the bar is really close to 100% (10 attempts at 93%, 11 at 95%, all the way up to 15 at 100% where it'll stay for
+    all the following attempts).
+     */
+    private static double decompileProgressMultiplier(int x) {
+        if(x < 0) return 0;
+        return Math.min(1, (0.8 * Math.log(1 + x)) / (1 + 0.44 * Math.log(1 + x)));
     }
 }

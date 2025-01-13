@@ -11,12 +11,14 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
 import org.mcphackers.mcp.MCP;
 
 public class LauncherMCP extends MCP {
     public Version currentVersion = null;
     public boolean active = false;
+    private final List<ProgressListener> progressListeners = new ArrayList<>();
 
     public LauncherMCP() {
         // launcher is a gui but retromcp shouldn't directly interact with the user
@@ -64,6 +66,7 @@ public class LauncherMCP extends MCP {
 
     @Override
     public void setProgress(int barIndex, int progress) {
+        progressListeners.forEach(listener -> listener.run(progress));
     }
 
     @Override
@@ -94,8 +97,20 @@ public class LauncherMCP extends MCP {
         return false;
     }
 
+    public void registerProgressListener(ProgressListener listener) {
+        progressListeners.add(listener);
+    }
+
+    public boolean removeProgressListener(ProgressListener listener) {
+        return progressListeners.remove(listener);
+    }
+
     @Override
     public Task.Side getSide() {
         return Task.Side.CLIENT;
+    }
+
+    public interface ProgressListener {
+        void run(int progress);
     }
 }
